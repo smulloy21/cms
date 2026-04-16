@@ -4,8 +4,9 @@
   <ul>
     {% for file in files %}
       <li>
-        <a href="{{ url_for('get_file', filename=file) }}">{{ file }}</a> <a href="{{ url_for('show_edit_file', filename=file) }}">Edit</a>
+        <a href="{{ url_for('get_file', filename=file) }}">{{ file }}</a> <a href="{{ url_for('show_edit_file', filename=file) }}">edit</a>
       </li>
     {% endfor %}
   </ul>
+  <a href="{{ url_for('show_new_document') }}">new document</a>
 {% endblock %}

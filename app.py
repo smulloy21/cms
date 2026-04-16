@@ -44,7 +44,7 @@ def get_file(filename):
     if filename.endswith('.md'):
         with open(file_path, 'r') as file:
             content = file.read()
-        return markdown(content)
+        return render_template('markdown.html', content=markdown(content))
 
     return send_from_directory(data_dir, filename)
 
@@ -80,6 +80,30 @@ def edit_file(filename):
         file.write(content)
 
     flash(f'{filename} successfully updated.', 'success')
+    session.modified = True
+    return redirect(url_for('index'))
+
+
+@app.route('/new')
+def show_new_document():
+    return render_template('new_file.html')
+
+
+@app.route('/new', methods=["POST"])
+def create_file():
+    filename = request.form['new_file_name'].strip()
+    data_dir = get_data_path()
+    file_path = os.path.join(data_dir, filename)
+
+    if os.path.exists(file_path):
+        flash(f'{filename} already exists.', 'error')
+        session.modified = True
+        return redirect(url_for('index'))
+
+    with open(file_path, "a") as f:
+        pass
+
+    flash(f'{filename} successfully created.', 'success')
     session.modified = True
     return redirect(url_for('index'))
 

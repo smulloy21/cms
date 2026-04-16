@@ -87,6 +87,37 @@ class CMSTest(unittest.TestCase):
             self.assertIn("new content",
                           content_response.get_data(as_text=True))
 
+    def test_creating_new_document(self):
+        response = self.client.get('/new')
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('Create new document</label>',
+                      response.get_data(as_text=True))
+
+        response = self.client.post('/new',
+                                    data={'new_file_name': 'hello.txt'})
+        self.assertEqual(response.status_code, 302)
+
+        follow_response = self.client.get(response.location)
+        self.assertEqual(follow_response.status_code, 200)
+        self.assertIn('hello.txt successfully created',
+                      follow_response.get_data(as_text=True))
+
+    def test_creating_existing_document(self):
+        self.create_document("hello.txt")
+        response = self.client.get('/new')
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('Create new document</label>',
+                      response.get_data(as_text=True))
+
+        response = self.client.post('/new',
+                                    data={'new_file_name': 'hello.txt'})
+        self.assertEqual(response.status_code, 302)
+
+        follow_response = self.client.get(response.location)
+        self.assertEqual(follow_response.status_code, 200)
+        self.assertIn('hello.txt already exists',
+                      follow_response.get_data(as_text=True))
+
 
 if __name__ == '__main__':
     unittest.main()
