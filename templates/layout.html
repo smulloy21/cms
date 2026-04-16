@@ -3,6 +3,7 @@
   <head>
     <meta charset="utf-8">
     <title>CMS</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}"></link>
   </head>
   <body>
     {% with messages = get_flashed_messages(with_categories=True) %}

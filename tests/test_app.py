@@ -40,7 +40,27 @@ class CMSTest(unittest.TestCase):
 
     def test_missing_document(self):
         with self.client.get('/info.md') as response:
-            self.assertIn("<h1>I am markdown!</h1>", response.get_data(as_text=True))
+            self.assertIn("<h1>I am markdown!</h1>",
+                          response.get_data(as_text=True))
+
+    def test_show_edit_document(self):
+        response = self.client.get('/changes.txt/edit')
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("<textarea", response.get_data(as_text=True))
+
+    def test_edit_document(self):
+        response = self.client.post('/changes.txt/edit',
+                              data={'file_content':'new changes!'})
+        self.assertEqual(response.status_code, 302)
+
+        follow_response = self.client.get(response.headers['Location'])
+        self.assertIn("changes.txt successfully updated",
+                      follow_response.get_data(as_text=True))
+
+        with self.client.get("/changes.txt") as content_response:
+            self.assertEqual(content_response.status_code, 200)
+            self.assertIn("new changes!",
+                          content_response.get_data(as_text=True))
 
 
 if __name__ == "__main__":
