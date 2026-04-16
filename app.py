@@ -12,6 +12,8 @@ from flask import (
 )
 from markdown import markdown
 
+from src.cms.utils import is_valid
+
 
 app = Flask(__name__)
 app.secret_key='secret123'
@@ -127,6 +129,34 @@ def delete_file(filename):
 
     flash(f'{filename} successfully deleted.', 'success')
     session.modified = True
+    return redirect(url_for('index'))
+
+
+@app.route('/users/signin')
+def show_signin():
+    return render_template('sign_in.html')
+
+
+@app.route('/users/signin', methods=["POST"])
+def sign_in_user():
+    username = request.form['username'].strip()
+    password = request.form['password'].strip()
+
+    if not is_valid(username, password):
+        flash('Credentials are invalid', 'error')
+        session.modified = True
+        return render_template('sign_in.html'), 422
+
+    flash('Welcome!', 'success')
+    session['username'] = username
+    session.modified = True
+    return redirect(url_for('index'))
+
+
+@app.route("/users/signout", methods=['POST'])
+def signout():
+    session.pop('username', None)
+    flash("You have been signed out.", 'success')
     return redirect(url_for('index'))
 
 

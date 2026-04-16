@@ -13,4 +13,15 @@
     {% endfor %}
   </ul>
   <a href="{{ url_for('show_new_document') }}">new document</a>
+
+  {% if session.username %}
+    <form method="post" action="{{ url_for('signout') }}">
+      <p class="user-status">
+        signed in as {{ session.username }}
+        <button type="submit">sign out</button>
+      </p>
+    </form>
+  {% else %}
+    <p class="user-status"><a href="{{ url_for('show_signin') }}">sign in</a></p>
+  {% endif %}
 {% endblock %}
