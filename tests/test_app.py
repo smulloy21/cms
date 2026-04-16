@@ -38,6 +38,10 @@ class CMSTest(unittest.TestCase):
             self.assertNotIn("hello.txt does not exist.",
                       response.get_data(as_text=True))
 
+    def test_missing_document(self):
+        with self.client.get('/info.md') as response:
+            self.assertIn("<h1>I am markdown!</h1>", response.get_data(as_text=True))
+
 
 if __name__ == "__main__":
     unittest.main()
