@@ -20,6 +20,12 @@ class CMSTest(unittest.TestCase):
         with open(os.path.join(self.data_path, name), 'w') as file:
             file.write(content)
 
+    def admin_session(self):
+        with self.client as c:
+            with c.session_transaction() as sess:
+                sess['username'] = 'admin'
+            return c
+
     def test_index(self):
         self.create_document("about.md")
         self.create_document("changes.txt")
@@ -67,13 +73,24 @@ class CMSTest(unittest.TestCase):
 
     def test_editing_document(self):
         self.create_document("changes.txt")
+        self.admin_session()
 
         response = self.client.get("/changes.txt/edit")
         self.assertEqual(response.status_code, 200)
         self.assertIn("<textarea", response.get_data(as_text=True))
 
+    def test_editing_document_signed_out(self):
+        self.create_document("about.md", "# Python is...")
+        response = self.client.get("/changes.txt/edit")
+        self.assertEqual(response.status_code, 302)
+
+        follow_response = self.client.get(response.location)
+        self.assertIn("You must be signed in",
+                      follow_response.get_data(as_text=True))
+
     def test_updating_document(self):
         self.create_document("changes.txt")
+        self.admin_session()
         response = self.client.post("/changes.txt/edit",
                                     data={'file_content': "new content"})
         self.assertEqual(response.status_code, 302)
@@ -87,7 +104,18 @@ class CMSTest(unittest.TestCase):
             self.assertIn("new content",
                           content_response.get_data(as_text=True))
 
+    def test_updating_document_signed_out(self):
+        self.create_document("changes.txt")
+        response = self.client.post("/changes.txt/edit",
+                                    data={'file_content': "new content"})
+        self.assertEqual(response.status_code, 302)
+
+        follow_response = self.client.get(response.headers['Location'])
+        self.assertIn("You must be signed in",
+                      follow_response.get_data(as_text=True))
+
     def test_creating_new_document(self):
+        self.admin_session()
         response = self.client.get('/new')
         self.assertEqual(response.status_code, 200)
         self.assertIn('Create new document</label>',
@@ -102,8 +130,17 @@ class CMSTest(unittest.TestCase):
         self.assertIn('hello.txt successfully created',
                       follow_response.get_data(as_text=True))
 
+    def test_creating_new_document_signed_out(self):
+        response = self.client.get('/new')
+        self.assertEqual(response.status_code, 302)
+
+        follow_response = self.client.get(response.location)
+        self.assertIn("You must be signed in",
+                      follow_response.get_data(as_text=True))
+
     def test_creating_existing_document(self):
         self.create_document("hello.txt")
+        self.admin_session()
 
         response = self.client.get('/new')
         self.assertEqual(response.status_code, 200)
@@ -120,6 +157,7 @@ class CMSTest(unittest.TestCase):
                       follow_response.get_data(as_text=True))
 
     def test_creating_unnamed_document(self):
+        self.admin_session()
         response = self.client.post('/new',
                                     data={'new_file_name': ''})
         self.assertEqual(response.status_code, 302)
@@ -132,6 +170,7 @@ class CMSTest(unittest.TestCase):
                       follow_response.get_data(as_text=True))
 
     def test_deleting_existing_document(self):
+        self.admin_session()
         self.create_document("hello.txt")
         response = self.client.post('/hello.txt/delete')
         self.assertEqual(response.status_code, 302)
@@ -141,11 +180,20 @@ class CMSTest(unittest.TestCase):
                       follow_response.get_data(as_text=True))
 
     def test_deleting_nonexisting_document(self):
+        self.admin_session()
         response = self.client.post('/hello.txt/delete')
         self.assertEqual(response.status_code, 302)
 
         follow_response = self.client.get(response.location)
         self.assertIn('hello.txt does not exist',
+                      follow_response.get_data(as_text=True))
+
+    def test_deleting_document_signed_out(self):
+        response = self.client.post('/hello.txt/delete')
+        self.assertEqual(response.status_code, 302)
+
+        follow_response = self.client.get(response.location)
+        self.assertIn("You must be signed in",
                       follow_response.get_data(as_text=True))
 
 

@@ -1,3 +1,4 @@
+from functools import wraps
 import os
 
 from flask import (
@@ -26,6 +27,22 @@ def get_data_path():
         return os.path.join(os.path.dirname(__file__), 'src', 'cms', 'data')
 
 
+def user_signed_in():
+    return 'username' in session
+
+
+def require_signed_in_user(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not user_signed_in():
+            flash('You must be signed in to do that.', 'error')
+            return redirect(url_for('show_signin'))
+
+        return f(*args, **kwargs)
+
+    return decorated_function
+
+
 @app.route('/')
 def index():
     data_dir = get_data_path()
@@ -52,6 +69,7 @@ def get_file(filename):
 
 
 @app.route('/<filename>/edit')
+@require_signed_in_user
 def show_edit_file(filename):
     data_dir = get_data_path()
     file_path = os.path.join(data_dir, filename)
@@ -68,6 +86,7 @@ def show_edit_file(filename):
 
 
 @app.route('/<filename>/edit', methods=["POST"])
+@require_signed_in_user
 def edit_file(filename):
     content = request.form["file_content"].strip()
     data_dir = get_data_path()
@@ -87,11 +106,13 @@ def edit_file(filename):
 
 
 @app.route('/new')
+@require_signed_in_user
 def show_new_document():
     return render_template('new_file.html')
 
 
 @app.route('/new', methods=["POST"])
+@require_signed_in_user
 def create_file():
     filename = request.form['new_file_name'].strip()
     data_dir = get_data_path()
@@ -116,6 +137,7 @@ def create_file():
 
 
 @app.route('/<filename>/delete', methods=["POST"])
+@require_signed_in_user
 def delete_file(filename):
     data_dir = get_data_path()
     file_path = os.path.join(data_dir, filename)
