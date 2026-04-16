@@ -104,6 +104,7 @@ class CMSTest(unittest.TestCase):
 
     def test_creating_existing_document(self):
         self.create_document("hello.txt")
+
         response = self.client.get('/new')
         self.assertEqual(response.status_code, 200)
         self.assertIn('Create new document</label>',
@@ -116,6 +117,18 @@ class CMSTest(unittest.TestCase):
         follow_response = self.client.get(response.location)
         self.assertEqual(follow_response.status_code, 200)
         self.assertIn('hello.txt already exists',
+                      follow_response.get_data(as_text=True))
+
+    def test_creating_unnamed_document(self):
+        response = self.client.post('/new',
+                                    data={'new_file_name': ''})
+        self.assertEqual(response.status_code, 302)
+
+        follow_response = self.client.get(response.location)
+        self.assertEqual(follow_response.status_code, 200)
+        self.assertIn('A file name is required',
+                      follow_response.get_data(as_text=True))
+        self.assertIn('Create new document</label>',
                       follow_response.get_data(as_text=True))
 
 

@@ -95,6 +95,11 @@ def create_file():
     data_dir = get_data_path()
     file_path = os.path.join(data_dir, filename)
 
+    if not filename:
+        flash('A file name is required.', 'error')
+        session.modified = True
+        return redirect(url_for('show_new_document'))
+
     if os.path.exists(file_path):
         flash(f'{filename} already exists.', 'error')
         session.modified = True
