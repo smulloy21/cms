@@ -1,56 +1,81 @@
+import os
+import shutil
 import unittest
 
 from app import app
 
 
 class CMSTest(unittest.TestCase):
+
     def setUp(self):
         app.config['TESTING'] = True
         self.client = app.test_client()
+        self.data_path = os.path.join(os.path.dirname(__file__), 'data')
+        os.makedirs(self.data_path, exist_ok=True)
+
+    def tearDown(self):
+        shutil.rmtree(self.data_path, ignore_errors=True)
+
+    def create_document(self, name, content=""):
+        with open(os.path.join(self.data_path, name), 'w') as file:
+            file.write(content)
 
     def test_index(self):
-        response = self.client.get("/")
+        self.create_document("about.md")
+        self.create_document("changes.txt")
+
+        response = self.client.get('/')
+
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.content_type, "text/html; charset=utf-8")
-        self.assertIn("about.txt", response.get_data(as_text=True))
+        self.assertIn("about.md", response.get_data(as_text=True))
         self.assertIn("changes.txt", response.get_data(as_text=True))
-        self.assertIn("history.txt", response.get_data(as_text=True))
 
     def test_viewing_text_document(self):
+        self.create_document("history.txt",
+                             "Python 0.9.0 (initial release) is released.")
+
         with self.client.get('/history.txt') as response:
             self.assertEqual(response.status_code, 200)
             self.assertEqual(response.content_type, "text/plain; charset=utf-8")
             self.assertIn("Python 0.9.0 (initial release) is released.",
-                      response.get_data(as_text=True))
-
-    def test_missing_document(self):
-        with self.client.get('/hello.txt') as response:
-            self.assertEqual(response.status_code, 302)
-            self.assertEqual(response.location, '/')
-
-        # flash message should display on next get request
-        with self.client.get('/') as response:
-            self.assertIn("hello.txt does not exist.",
-                      response.get_data(as_text=True))
-
-        # flash messge should be gone on subsequent requests
-        with self.client.get('/') as response:
-            self.assertNotIn("hello.txt does not exist.",
-                      response.get_data(as_text=True))
-
-    def test_missing_document(self):
-        with self.client.get('/info.md') as response:
-            self.assertIn("<h1>I am markdown!</h1>",
                           response.get_data(as_text=True))
 
-    def test_show_edit_document(self):
-        response = self.client.get('/changes.txt/edit')
+    def test_document_not_found(self):
+        # Attempt to access a nonexistent file and verify a redirect happens
+        with self.client.get("/notafile.ext") as response:
+            self.assertEqual(response.status_code, 302)
+
+        # Verify redirect and message handling works
+        with self.client.get(response.headers['Location']) as response:
+            self.assertEqual(response.status_code, 200)
+            self.assertIn("notafile.ext does not exist",
+                          response.get_data(as_text=True))
+
+        # Assert that a page reload removes the message
+        with self.client.get("/") as response:
+            self.assertNotIn("notafile.ext does not exist",
+                             response.get_data(as_text=True))
+
+    def test_viewing_markdown_document(self):
+        self.create_document("about.md", "# Python is...")
+
+        response = self.client.get('/about.md')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.content_type, "text/html; charset=utf-8")
+        self.assertIn("<h1>Python is...</h1>", response.get_data(as_text=True))
+
+    def test_editing_document(self):
+        self.create_document("changes.txt")
+
+        response = self.client.get("/changes.txt/edit")
         self.assertEqual(response.status_code, 200)
         self.assertIn("<textarea", response.get_data(as_text=True))
 
-    def test_edit_document(self):
-        response = self.client.post('/changes.txt/edit',
-                              data={'file_content':'new changes!'})
+    def test_updating_document(self):
+        self.create_document("changes.txt")
+        response = self.client.post("/changes.txt/edit",
+                                    data={'file_content': "new content"})
         self.assertEqual(response.status_code, 302)
 
         follow_response = self.client.get(response.headers['Location'])
@@ -59,9 +84,9 @@ class CMSTest(unittest.TestCase):
 
         with self.client.get("/changes.txt") as content_response:
             self.assertEqual(content_response.status_code, 200)
-            self.assertIn("new changes!",
+            self.assertIn("new content",
                           content_response.get_data(as_text=True))
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     unittest.main()

@@ -17,18 +17,23 @@ app = Flask(__name__)
 app.secret_key='secret123'
 
 
+def get_data_path():
+    if app.config['TESTING']:
+        return os.path.join(os.path.dirname(__file__), 'tests', 'data')
+    else:
+        return os.path.join(os.path.dirname(__file__), 'src', 'cms', 'data')
+
+
 @app.route('/')
 def index():
-    root = os.path.abspath(os.path.dirname(__file__))
-    data_dir = os.path.join(root, "src", "cms", "data")
+    data_dir = get_data_path()
     files = [os.path.basename(path) for path in os.listdir(data_dir)]
     return render_template('index.html', files=files)
 
 
 @app.route('/<filename>')
 def get_file(filename):
-    root = os.path.abspath(os.path.dirname(__file__))
-    data_dir = os.path.join(root, "src", "cms", "data")
+    data_dir = get_data_path()
     file_path = os.path.join(data_dir, filename)
 
     if not os.path.exists(file_path):
@@ -46,8 +51,7 @@ def get_file(filename):
 
 @app.route('/<filename>/edit')
 def show_edit_file(filename):
-    root = os.path.abspath(os.path.dirname(__file__))
-    data_dir = os.path.join(root, "src", "cms", "data")
+    data_dir = get_data_path()
     file_path = os.path.join(data_dir, filename)
 
     if not os.path.exists(file_path):
@@ -64,8 +68,7 @@ def show_edit_file(filename):
 @app.route('/<filename>/edit', methods=["POST"])
 def edit_file(filename):
     content = request.form["file_content"].strip()
-    root = os.path.abspath(os.path.dirname(__file__))
-    data_dir = os.path.join(root, "src", "cms", "data")
+    data_dir = get_data_path()
     file_path = os.path.join(data_dir, filename)
 
     if not os.path.exists(file_path):
