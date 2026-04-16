@@ -131,6 +131,23 @@ class CMSTest(unittest.TestCase):
         self.assertIn('Create new document</label>',
                       follow_response.get_data(as_text=True))
 
+    def test_deleting_existing_document(self):
+        self.create_document("hello.txt")
+        response = self.client.post('/hello.txt/delete')
+        self.assertEqual(response.status_code, 302)
+
+        follow_response = self.client.get(response.location)
+        self.assertIn('hello.txt successfully deleted',
+                      follow_response.get_data(as_text=True))
+
+    def test_deleting_nonexisting_document(self):
+        response = self.client.post('/hello.txt/delete')
+        self.assertEqual(response.status_code, 302)
+
+        follow_response = self.client.get(response.location)
+        self.assertIn('hello.txt does not exist',
+                      follow_response.get_data(as_text=True))
+
 
 if __name__ == '__main__':
     unittest.main()
