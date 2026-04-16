@@ -23,6 +23,21 @@ class CMSTest(unittest.TestCase):
             self.assertIn("Python 0.9.0 (initial release) is released.",
                       response.get_data(as_text=True))
 
+    def test_missing_document(self):
+        with self.client.get('/hello.txt') as response:
+            self.assertEqual(response.status_code, 302)
+            self.assertEqual(response.location, '/')
+
+        # flash message should display on next get request
+        with self.client.get('/') as response:
+            self.assertIn("hello.txt does not exist.",
+                      response.get_data(as_text=True))
+
+        # flash messge should be gone on subsequent requests
+        with self.client.get('/') as response:
+            self.assertNotIn("hello.txt does not exist.",
+                      response.get_data(as_text=True))
+
 
 if __name__ == "__main__":
     unittest.main()
