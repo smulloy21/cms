@@ -8,7 +8,9 @@ authors = [
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
-    "markdown (>=3.10.2,<4.0.0)"
+    "markdown (>=3.10.2,<4.0.0)",
+    "pyyaml (>=6.0.3,<7.0.0)",
+    "bcrypt (>=5.0.0,<6.0.0)"
 ]
 
 [tool.poetry]

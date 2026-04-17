@@ -2,6 +2,8 @@ import os
 import shutil
 import unittest
 
+import yaml
+
 from app import app
 
 
@@ -19,6 +21,10 @@ class CMSTest(unittest.TestCase):
     def create_document(self, name, content=""):
         with open(os.path.join(self.data_path, name), 'w') as file:
             file.write(content)
+
+    def create_user_file(self, username, password):
+        with open(os.path.join(self.data_path, 'users.yml'), 'w') as file:
+            file.write(yaml.dump({username: password}))
 
     def admin_session(self):
         with self.client as c:
@@ -195,6 +201,29 @@ class CMSTest(unittest.TestCase):
         follow_response = self.client.get(response.location)
         self.assertIn("You must be signed in",
                       follow_response.get_data(as_text=True))
+
+    def test_user_sign_in(self):
+        self.create_user_file('test_user',
+                              '$2b$12$m/rttWLM/kR8TUU5zD4K3uLuiwsvRH6Ghat0mY6tHTyVB/vLWVnny')
+        response = self.client.get('/users/signin')
+        self.assertEqual(response.status_code, 200)
+
+        response = self.client.post('/users/signin',
+                                    data={'username': 'test_user',
+                                          'password': 'password123'})
+        self.assertEqual(response.status_code, 302)
+
+        follow_response = self.client.get(response.location)
+        self.assertIn('Welcome!', follow_response.get_data(as_text=True))
+
+    def test_user_sign_in_invalid(self):
+        self.create_user_file('test_user',
+                              '$2b$12$m/rttWLM/kR8TUU5zD4K3uLuiwsvRH6Ghat0mY6tHTyVB/vLWVnny')
+        response = self.client.post('/users/signin',
+                                    data={'username': 'test_user',
+                                          'password': 'badpassword'})
+        self.assertEqual(response.status_code, 422)
+        self.assertIn('Credentials are invalid', response.get_data(as_text=True))
 
 
 if __name__ == '__main__':

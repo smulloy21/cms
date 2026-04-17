@@ -1,6 +1,7 @@
 from functools import wraps
 import os
 
+import bcrypt
 from flask import (
     flash,
     Flask,
@@ -12,8 +13,7 @@ from flask import (
     url_for,
 )
 from markdown import markdown
-
-from src.cms.utils import is_valid
+import yaml
 
 
 app = Flask(__name__)
@@ -25,6 +25,21 @@ def get_data_path():
         return os.path.join(os.path.dirname(__file__), 'tests', 'data')
     else:
         return os.path.join(os.path.dirname(__file__), 'src', 'cms', 'data')
+
+
+def valid_credentials(username, password):
+    data_dir = get_data_path()
+    file_path = os.path.join(data_dir, 'users.yml')
+    with open(file_path, 'r') as file:
+        users = yaml.safe_load(file)
+
+    for uname, pword in users.items():
+        if username == uname and (
+            bcrypt.checkpw(password.encode('utf-8'), pword.encode('utf-8'))
+        ):
+            return True
+
+    return False
 
 
 def user_signed_in():
@@ -164,7 +179,7 @@ def sign_in_user():
     username = request.form['username'].strip()
     password = request.form['password'].strip()
 
-    if not is_valid(username, password):
+    if not valid_credentials(username, password):
         flash('Credentials are invalid', 'error')
         session.modified = True
         return render_template('sign_in.html'), 422
