@@ -27,9 +27,16 @@ def get_data_path():
         return os.path.join(os.path.dirname(__file__), 'src', 'cms', 'data')
 
 
+def get_users_path():
+    if app.config['TESTING']:
+        return os.path.join(os.path.dirname(__file__), 'tests')
+    else:
+        return os.path.join(os.path.dirname(__file__), 'src', 'cms')
+
+
 def valid_credentials(username, password):
-    data_dir = get_data_path()
-    file_path = os.path.join(data_dir, 'users.yml')
+    users_dir = get_users_path()
+    file_path = os.path.join(users_dir, 'users.yml')
     with open(file_path, 'r') as file:
         users = yaml.safe_load(file)
 

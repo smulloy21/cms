@@ -22,10 +22,6 @@ class CMSTest(unittest.TestCase):
         with open(os.path.join(self.data_path, name), 'w') as file:
             file.write(content)
 
-    def create_user_file(self, username, password):
-        with open(os.path.join(self.data_path, 'users.yml'), 'w') as file:
-            file.write(yaml.dump({username: password}))
-
     def admin_session(self):
         with self.client as c:
             with c.session_transaction() as sess:
@@ -203,8 +199,6 @@ class CMSTest(unittest.TestCase):
                       follow_response.get_data(as_text=True))
 
     def test_user_sign_in(self):
-        self.create_user_file('test_user',
-                              '$2b$12$m/rttWLM/kR8TUU5zD4K3uLuiwsvRH6Ghat0mY6tHTyVB/vLWVnny')
         response = self.client.get('/users/signin')
         self.assertEqual(response.status_code, 200)
 
@@ -217,8 +211,6 @@ class CMSTest(unittest.TestCase):
         self.assertIn('Welcome!', follow_response.get_data(as_text=True))
 
     def test_user_sign_in_invalid(self):
-        self.create_user_file('test_user',
-                              '$2b$12$m/rttWLM/kR8TUU5zD4K3uLuiwsvRH6Ghat0mY6tHTyVB/vLWVnny')
         response = self.client.post('/users/signin',
                                     data={'username': 'test_user',
                                           'password': 'badpassword'})
