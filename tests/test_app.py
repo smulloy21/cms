@@ -116,6 +116,23 @@ class CMSTest(unittest.TestCase):
         self.assertIn("You must be signed in",
                       follow_response.get_data(as_text=True))
 
+    def test_updating_nonexistant_document(self):
+        self.admin_session()
+        response = self.client.get("/badfile.txt/edit")
+        self.assertEqual(response.status_code, 302)
+
+        follow_response = self.client.get(response.headers['Location'])
+        self.assertIn("badfile.txt does not exist",
+                      follow_response.get_data(as_text=True))
+
+        response = self.client.post("/badfile.txt/edit",
+                                    data={'file_content': "new content"})
+        self.assertEqual(response.status_code, 302)
+
+        follow_response = self.client.get(response.headers['Location'])
+        self.assertIn("badfile.txt does not exist",
+                      follow_response.get_data(as_text=True))
+
     def test_creating_new_document(self):
         self.admin_session()
         response = self.client.get('/new')
@@ -216,6 +233,22 @@ class CMSTest(unittest.TestCase):
                                           'password': 'badpassword'})
         self.assertEqual(response.status_code, 422)
         self.assertIn('Credentials are invalid', response.get_data(as_text=True))
+
+    def test_user_sign_out(self):
+        response = self.client.post('/users/signin',
+                                    data={'username': 'test_user',
+                                          'password': 'password123'})
+        self.assertEqual(response.status_code, 302)
+
+        follow_response = self.client.get(response.location)
+        self.assertIn('Welcome!', follow_response.get_data(as_text=True))
+
+        response = self.client.post('/users/signout')
+        self.assertEqual(response.status_code, 302)
+
+        follow_response = self.client.get(response.location)
+        self.assertIn('You have been signed out',
+                      follow_response.get_data(as_text=True))
 
 
 if __name__ == '__main__':
