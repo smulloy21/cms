@@ -14,10 +14,10 @@
   </ul>
   <a href="{{ url_for('show_new_document') }}">new document</a>
 
-  {% if session.username %}
+  {% if username %}
     <form method="post" action="{{ url_for('signout') }}">
       <p class="user-status">
-        signed in as {{ session.username }}
+        signed in as {{ username }}
         <button type="submit">sign out</button>
       </p>
     </form>

@@ -49,6 +49,21 @@ def valid_credentials(username, password):
     return False
 
 
+def get_file_path_or_redirect(filename):
+    """
+    Returns file path if it exists, otherwise redirects to index with error.
+    """
+    data_dir = get_data_path()
+    file_path = os.path.join(data_dir, filename)
+
+    if not os.path.exists(file_path):
+        flash(f'{filename} does not exist.', 'error')
+        session.modified = True
+        return None, redirect(url_for('index'))
+
+    return file_path, None
+
+
 def user_signed_in():
     return 'username' in session
 
@@ -69,18 +84,16 @@ def require_signed_in_user(f):
 def index():
     data_dir = get_data_path()
     files = [os.path.basename(path) for path in os.listdir(data_dir)]
-    return render_template('index.html', files=files)
+    username = session.get('username')
+    return render_template('index.html', files=files, username=username)
 
 
 @app.route('/<filename>')
 def get_file(filename):
     data_dir = get_data_path()
-    file_path = os.path.join(data_dir, filename)
-
-    if not os.path.exists(file_path):
-        flash(f'{filename} does not exist.', 'error')
-        session.modified = True
-        return redirect(url_for('index'))
+    file_path, error_response = get_file_path_or_redirect(filename)
+    if error_response:
+        return error_response
 
     if filename.endswith('.md'):
         with open(file_path, 'r') as file:
@@ -93,13 +106,9 @@ def get_file(filename):
 @app.route('/<filename>/edit')
 @require_signed_in_user
 def show_edit_file(filename):
-    data_dir = get_data_path()
-    file_path = os.path.join(data_dir, filename)
-
-    if not os.path.exists(file_path):
-        flash(f'{filename} does not exist.', 'error')
-        session.modified = True
-        return redirect(url_for('index'))
+    file_path, error_response = get_file_path_or_redirect(filename)
+    if error_response:
+        return error_response
 
     with open(file_path, 'r') as file:
         contents = file.read()
@@ -111,13 +120,9 @@ def show_edit_file(filename):
 @require_signed_in_user
 def edit_file(filename):
     content = request.form["file_content"].strip()
-    data_dir = get_data_path()
-    file_path = os.path.join(data_dir, filename)
-
-    if not os.path.exists(file_path):
-        flash(f'{filename} does not exist.', 'error')
-        session.modified = True
-        return redirect(url_for('index'))
+    file_path, error_response = get_file_path_or_redirect(filename)
+    if error_response:
+        return error_response
 
     with open(file_path, 'w') as file:
         file.write(content)
@@ -150,8 +155,8 @@ def create_file():
         session.modified = True
         return redirect(url_for('index'))
 
-    with open(file_path, "a") as f:
-        pass
+    with open(file_path, "w") as f:
+        f.write('')
 
     flash(f'{filename} successfully created.', 'success')
     session.modified = True
@@ -161,13 +166,9 @@ def create_file():
 @app.route('/<filename>/delete', methods=["POST"])
 @require_signed_in_user
 def delete_file(filename):
-    data_dir = get_data_path()
-    file_path = os.path.join(data_dir, filename)
-
-    if not os.path.exists(file_path):
-        flash(f'{filename} does not exist.', 'error')
-        session.modified = True
-        return redirect(url_for('index'))
+    file_path, error_response = get_file_path_or_redirect(filename)
+    if error_response:
+        return error_response
 
     os.remove(file_path)
 
